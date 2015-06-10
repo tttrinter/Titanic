@@ -7,13 +7,18 @@ Revised: 28 March 2014
 import csv as csv
 import numpy as np
 
-csv_file_object = csv.reader(open('train.csv', 'rb')) 	# Load in the csv file
-header = csv_file_object.next() 						# Skip the fist line as it is a header
-data=[] 												# Create a variable to hold the data
-
-for row in csv_file_object: 							# Skip through each row in the csv file,
-    data.append(row[0:]) 								# adding each row to the data variable
-data = np.array(data) 									# Then convert from a list to an array.
+with open('train.csv', newline='') as train_file:
+    has_header = csv.Sniffer().has_header(train_file.read(1024))
+    train_file.seek(0)  # rewind
+    csv_file_object = csv.reader(train_file)                     # Load in the csv file
+    if has_header:
+        next(csv_file_object)  # skip header row
+    data = [] 												# Create a variable to hold the data
+    for row in csv_file_object: 							# Skip through each row in the csv file,
+        #print(row)
+        data.append(row[0:]) 								# adding each row to the data variable
+    data = np.array(data) 									# Then convert from a list to an array.
+    train_file.close()
 
 # Now I have an array of 12 columns and 891 rows
 # I can access any element I want, so the entire first column would
@@ -42,8 +47,8 @@ men_onboard = data[men_only_stats,1].astype(np.float)
 proportion_women_survived = np.sum(women_onboard) / np.size(women_onboard)
 proportion_men_survived = np.sum(men_onboard) / np.size(men_onboard)
 
-print 'Proportion of women who survived is %s' % proportion_women_survived
-print 'Proportion of men who survived is %s' % proportion_men_survived
+print('Proportion of women who survived is %s' % proportion_women_survived)
+print('Proportion of men who survived is %s' % proportion_men_survived)
 
 # Now that I have my indicator that women were much more likely to survive,
 # I am done with the training set.
@@ -52,21 +57,25 @@ print 'Proportion of men who survived is %s' % proportion_men_survived
 # if male, then model that he did not survive (0)
 
 # First, read in test.csv
-test_file = open('test.csv', 'rb')
-test_file_object = csv.reader(test_file)
-header = test_file_object.next()
+with open('test.csv', newline='') as test_file:
+    has_header = csv.Sniffer().has_header(test_file.read(1024))
+    test_file.seek(0)  # rewind
+    test_file_object = csv.reader(test_file)                     # Load in the csv file
+    if has_header:
+        next(test_file_object)  # skip header row
 
 # Also open the a new file so I can write to it. Call it something descriptive
 # Finally, loop through each row in the train file, and look in column index [3] (which is 'Sex')
 # Write out the PassengerId, and my prediction.
 
-predictions_file = open("gendermodel.csv", "wb")
-predictions_file_object = csv.writer(predictions_file)
-predictions_file_object.writerow(["PassengerId", "Survived"])	# write the column headers
-for row in test_file_object:									# For each row in test file,
-    if row[3] == 'female':										# is it a female, if yes then
-        predictions_file_object.writerow([row[0], "1"])			# write the PassengerId, and predict 1
-    else:														# or else if male,
-        predictions_file_object.writerow([row[0], "0"])			# write the PassengerId, and predict 0.
+    predictions_file = open("gendermodel.csv", "w",newline='')
+    predictions_file_object = csv.writer(predictions_file)
+    predictions_file_object.writerow(["PassengerId", "Survived"])	# write the column headers
+    for row in test_file_object:									# For each row in test file,
+        if row[3] == 'female':										# is it a female, if yes then
+            predictions_file_object.writerow([row[0], "1"])			# write the PassengerId, and predict 1
+        else:														# or else if male,
+            predictions_file_object.writerow([row[0], "0"])			# write the PassengerId, and predict 0.
+
 test_file.close()												# Close out the files.
 predictions_file.close()
